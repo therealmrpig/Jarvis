@@ -1,0 +1,11 @@
+input.wav
+output.wav
+temp.wav
+temp_tts.wav
+Jarvis.code-workspace
+Piper-Modelfiles/en_GB-alan-low.onnx
+Piper-Modelfiles/en_GB-alan-low.onnx.json
+Piper-Modelfiles/en_GB-northern_english-male-medium.onnx
+Piper-Modelfiles/en_GB-northern_english-male-medium.onnx.json
+Piper-Modelfiles/jarvis-medium.onnx
+Piper-Modelfiles/jarvis-medium.onnx.json
