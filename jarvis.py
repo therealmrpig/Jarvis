@@ -16,12 +16,12 @@ import threading
 from precise_runner import PreciseEngine, PreciseRunner
 import speech_recognition as sr
 
-# STT variables & functions
+# Voice detection imports
+from silero_vad_lite import SileroVAD
+
+# STT variables
 whisper_model = WhisperModel("tiny", device="cpu", compute_type="int8", local_files_only=True)
 stt_audio_data = []
-
-def audio_callback(indata, frames, time, status):
-    stt_audio_data.append(indata.copy())
 
 # LLM variables
 message_context = []
@@ -37,7 +37,7 @@ syn_config = SynthesisConfig(
 voice = PiperVoice.load("Piper-Modelfiles/en_GB-alan-low.onnx")
 tts_audio_data = []
 
-# -- Wake word logic & setup
+# Wake word logic & setup
 wake_word_triggered = threading.Event()
 
 def wakeword_detected():
@@ -50,8 +50,25 @@ def check_prob(prob):
 wake_word_mic = sr.Microphone(device_index=3, sample_rate=16000)
 
 engine = PreciseEngine("/Users/melle/Projects/mycroft-precise/.venv/bin/precise-engine", "Precise-Modelfiles/jarvis.pb")
-runner = PreciseRunner(engine, sensitivity=0.9, trigger_level=3, on_activation=wakeword_detected, on_prediction=check_prob, stream=wake_word_mic.stream)
+runner = PreciseRunner(engine, sensitivity=0.95, trigger_level=3, on_activation=wakeword_detected, on_prediction=check_prob, stream=wake_word_mic.stream)
 runner.start()
+
+# Voice detecting setup
+vad = SileroVAD(sample_rate=16000)
+speech_done = threading.Event()
+
+def monitor_silence(chunk, state):
+    audio_float32 = chunk.flatten().astype(np.float32) / 32768.0
+    prob = vad.process(audio_float32)
+
+    if prob > 0.4:
+        state['is_speaking'] = True
+        state['silence_count'] = 0
+    elif state['is_speaking']:
+        state['silence_count'] += 1
+
+    if state['is_speaking'] and state['silence_count'] > 25:
+        speech_done.set()
 
 while True:
     # -- Speech to text
@@ -59,18 +76,19 @@ while True:
     # Wait for wake word
     wake_word_triggered.wait()
 
-    # Clear audio buffer
+    # Clear audio buffer, silence flag & the vad state
     stt_audio_data.clear()
+    speech_done.clear()
+    vad_state = {'is_speaking': False, 'silence_count': 0}
 
     # Start stream
-    stream = sd.InputStream(samplerate=16000, channels=1, dtype='int16', callback=audio_callback)
-    stream.start()
-    
-    # End stream once input is given
-    input("Recording... Press Enter to stop.") 
-    
-    stream.stop()
-    stream.close()
+    with sd.InputStream(samplerate=16000, channels=1, dtype='int16', blocksize=512) as stream:
+        # Wait for silence while recording
+        while not speech_done.is_set():
+            chunk, _ = stream.read(512)
+            stt_audio_data.append(chunk)
+
+            monitor_silence(chunk, vad_state)
     
     # Write stream to wav
     wav.write("input.wav", 16000, np.concatenate(stt_audio_data, axis=0))
@@ -88,7 +106,7 @@ while True:
 
     # Start the model with streaming mode turned on, preventing ollama from waiting and delivering everything at once, and instead printing small chunks one by one
     stream = chat(
-        model="jarvis-gemma-v2",
+        model="jarvis-gemma-v1",
         messages=message_context,
         stream=True,
         keep_alive=-1
