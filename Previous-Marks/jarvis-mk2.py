@@ -1,8 +1,3 @@
-# General imports
-import signal
-import sys
-import time
-
 # STT imports
 import numpy as np
 import sounddevice as sd
@@ -17,41 +12,12 @@ from piper import PiperVoice
 from piper import SynthesisConfig
 
 # Wake word imports
-import pyaudio
-from openwakeword.model import Model
+import threading
+from precise_runner import PreciseEngine, PreciseRunner
+import speech_recognition as sr
 
 # Voice detection imports
 from silero_vad_lite import SileroVAD
-import threading
-
-# Audio stream handling
-audio = pyaudio.PyAudio()
-
-FORMAT = pyaudio.paInt16
-CHANNELS = 1
-RATE = 16000
-CHUNK = 1280
-
-mic_stream = audio.open(
-    format=FORMAT, 
-    channels=CHANNELS, 
-    rate=RATE, 
-    input=True, 
-    frames_per_buffer=CHUNK
-)
-
-# Graceful shutdown logic
-def signal_handler(sig, frame):
-    print("\nCleaning up Jarvis")
-    try:
-        mic_stream.stop_stream()
-        mic_stream.close()
-        audio.terminate()
-    except:
-        pass
-    sys.exit(0)
-
-signal.signal(signal.SIGINT, signal_handler)
 
 # STT variables
 whisper_model = WhisperModel("tiny", device="cpu", compute_type="int8", local_files_only=True)
@@ -71,9 +37,21 @@ syn_config = SynthesisConfig(
 voice = PiperVoice.load("Piper-Modelfiles/jarvis-high.onnx")
 tts_audio_data = []
 
-# Wake word setup
-oww_model = Model(inference_framework="onnx", wakeword_models=["OpenWakeword-Modelfiles/jarvis-v2.onnx"])
-triggered = False
+# Wake word logic & setup
+wake_word_triggered = threading.Event()
+
+def wakeword_detected():
+    print("wake word detected")
+    wake_word_triggered.set()
+def check_prob(prob):
+    if prob > 0.01:
+        print(f"Confidence: {prob:.2f}")
+
+wake_word_mic = sr.Microphone(device_index=3, sample_rate=16000)
+
+engine = PreciseEngine("/Users/melle/Projects/mycroft-precise/.venv/bin/precise-engine", "Precise-Modelfiles/jarvis.pb")
+runner = PreciseRunner(engine, sensitivity=0.9, trigger_level=2, on_activation=wakeword_detected, on_prediction=check_prob, stream=wake_word_mic.stream)
+runner.start()
 
 # Voice detecting setup
 vad = SileroVAD(sample_rate=16000)
@@ -94,17 +72,9 @@ def monitor_silence(chunk, state):
 
 while True:
     # -- Speech to text
-
-    print("\nListening for wakeword...")
-    while not triggered:
-        data = mic_stream.read(CHUNK, exception_on_overflow=False)
-        audio_frame = np.frombuffer(data, dtype=np.int16)
-
-        prediction = oww_model.predict(audio_frame)
-        for mdl, score in prediction.items():
-            if score > 0.5:
-                print(f"DETECTED: {mdl} (Score: {score:.4f})")
-                triggered = True
+    
+    # Wait for wake word
+    wake_word_triggered.wait()
 
     # Clear audio buffer, silence flag & the vad state
     stt_audio_data.clear()
@@ -112,13 +82,13 @@ while True:
     vad_state = {'is_speaking': False, 'silence_count': 0}
 
     # Start stream
-    while not speech_done.is_set():
-        # We use a smaller read size for faster VAD response
-        data = mic_stream.read(512, exception_on_overflow=False)
-        chunk = np.frombuffer(data, dtype=np.int16)
-        
-        stt_audio_data.append(chunk)
-        monitor_silence(chunk, vad_state)
+    with sd.InputStream(samplerate=16000, channels=1, dtype='int16', blocksize=512) as stream:
+        # Wait for silence while recording
+        while not speech_done.is_set():
+            chunk, _ = stream.read(512)
+            stt_audio_data.append(chunk)
+
+            monitor_silence(chunk, vad_state)
     
     # Write stream to wav
     wav.write("input.wav", 16000, np.concatenate(stt_audio_data, axis=0))
@@ -170,12 +140,9 @@ while True:
 
     # Play audio and wait until finished before clearing the trigger, resuming the wait for the wake word detector
     sd.play(full_tts_audio, samplerate=voice.config.sample_rate)
-    while sd.get_stream().active:
-        # Clear the stream buffer
-        if mic_stream.get_read_available() > 0:
-            mic_stream.read(mic_stream.get_read_available(), exception_on_overflow=False)
-        oww_model.predict(np.zeros(CHUNK, dtype=np.int16))
-        time.sleep(0.05)
-
-    triggered = False
+    sd.wait()
+    wake_word_triggered.clear()
     print("resuming runner")
+
+
+    
