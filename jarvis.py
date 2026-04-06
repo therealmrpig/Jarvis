@@ -14,6 +14,7 @@ from piper import SynthesisConfig
 # Wake word imports
 import threading
 from precise_runner import PreciseEngine, PreciseRunner
+import speech_recognition as sr
 
 # STT variables & functions
 whisper_model = WhisperModel("tiny", device="cpu", compute_type="int8", local_files_only=True)
@@ -46,8 +47,10 @@ def check_prob(prob):
     if prob > 0.01:
         print(f"Confidence: {prob:.2f}")
 
+wake_word_mic = sr.Microphone(device_index=3, sample_rate=16000)
+
 engine = PreciseEngine("/Users/melle/Projects/mycroft-precise/.venv/bin/precise-engine", "Precise-Modelfiles/jarvis.pb")
-runner = PreciseRunner(engine, sensitivity=0.9, trigger_level=3, on_activation=wakeword_detected, on_prediction=check_prob)
+runner = PreciseRunner(engine, sensitivity=0.9, trigger_level=3, on_activation=wakeword_detected, on_prediction=check_prob, stream=wake_word_mic.stream)
 runner.start()
 
 while True:
