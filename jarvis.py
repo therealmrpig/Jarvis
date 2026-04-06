@@ -34,7 +34,7 @@ syn_config = SynthesisConfig(
     noise_w_scale=0.8,
     normalize_audio=True,
 )
-voice = PiperVoice.load("Piper-Modelfiles/en_GB-alan-low.onnx")
+voice = PiperVoice.load("Piper-Modelfiles/jarvis-high.onnx")
 tts_audio_data = []
 
 # Wake word logic & setup
@@ -50,7 +50,7 @@ def check_prob(prob):
 wake_word_mic = sr.Microphone(device_index=3, sample_rate=16000)
 
 engine = PreciseEngine("/Users/melle/Projects/mycroft-precise/.venv/bin/precise-engine", "Precise-Modelfiles/jarvis.pb")
-runner = PreciseRunner(engine, sensitivity=0.95, trigger_level=3, on_activation=wakeword_detected, on_prediction=check_prob, stream=wake_word_mic.stream)
+runner = PreciseRunner(engine, sensitivity=0.9, trigger_level=2, on_activation=wakeword_detected, on_prediction=check_prob, stream=wake_word_mic.stream)
 runner.start()
 
 # Voice detecting setup
