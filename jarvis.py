@@ -63,9 +63,9 @@ message_context = []
 # TTS variables
 syn_config = SynthesisConfig(
     volume=0.5,
-    length_scale=0.8,
-    noise_scale=0.667,
-    noise_w_scale=0.8,
+    length_scale=1.0,
+    noise_scale=1.0,
+    noise_w_scale=1.0,
     normalize_audio=True,
 )
 voice = PiperVoice.load("Piper-Modelfiles/jarvis-high.onnx")
@@ -95,6 +95,13 @@ def monitor_silence(chunk, state):
 while True:
     # -- Speech to text
 
+    # Clear the stream & wakeword model buffer
+    if mic_stream.get_read_available() > 0:
+            mic_stream.read(mic_stream.get_read_available(), exception_on_overflow=False)
+    
+    for i in range(5):
+        oww_model.predict(np.zeros(CHUNK, dtype=np.int16))
+    
     print("\nListening for wakeword...")
     while not triggered:
         data = mic_stream.read(CHUNK, exception_on_overflow=False)
@@ -170,12 +177,7 @@ while True:
 
     # Play audio and wait until finished before clearing the trigger, resuming the wait for the wake word detector
     sd.play(full_tts_audio, samplerate=voice.config.sample_rate)
-    while sd.get_stream().active:
-        # Clear the stream buffer
-        if mic_stream.get_read_available() > 0:
-            mic_stream.read(mic_stream.get_read_available(), exception_on_overflow=False)
-        oww_model.predict(np.zeros(CHUNK, dtype=np.int16))
-        time.sleep(0.05)
+    sd.wait()
 
     triggered = False
     print("resuming runner")
