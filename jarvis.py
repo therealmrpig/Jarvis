@@ -86,7 +86,7 @@ def playback_worker():
 
 def synthesis_worker():
     while True:
-        text = text_queue.get()
+        text = text_queue.get().replace("*", "")
         if text is None: break
         
         # Generate audio chunks and pass them to the playback queue
@@ -197,7 +197,7 @@ while True:
 
     # Catch any remaining text
     if sentence_buffer.strip():
-        speech_queue.put(sentence_buffer.strip())
+        text_queue.put(sentence_buffer.strip())
     
     message_context.append({'role': 'assistant', 'content': full_response})
     print()
