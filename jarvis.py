@@ -15,6 +15,7 @@ from ollama import chat
 # TTS imports
 from piper import PiperVoice
 from piper import SynthesisConfig
+import queue
 
 # Wake word imports
 import pyaudio
@@ -43,6 +44,8 @@ mic_stream = audio.open(
 # Graceful shutdown logic
 def signal_handler(sig, frame):
     print("\nCleaning up Jarvis")
+    text_queue.put(None)
+    audio_queue.put(None)
     try:
         mic_stream.stop_stream()
         mic_stream.close()
@@ -60,7 +63,7 @@ stt_audio_data = []
 # LLM variables
 message_context = []
 
-# TTS variables
+# TTS variables & audio player
 syn_config = SynthesisConfig(
     volume=0.5,
     length_scale=1.0,
@@ -69,7 +72,31 @@ syn_config = SynthesisConfig(
     normalize_audio=True,
 )
 voice = PiperVoice.load("Piper-Modelfiles/jarvis-high.onnx")
-tts_audio_data = []
+
+text_queue = queue.Queue()
+audio_queue = queue.Queue()
+
+def playback_worker():
+    while True:
+        chunk = audio_queue.get()
+        if chunk is None: break
+        sd.play(chunk, samplerate=voice.config.sample_rate)
+        sd.wait()
+        audio_queue.task_done()
+
+def synthesis_worker():
+    while True:
+        text = text_queue.get()
+        if text is None: break
+        
+        # Generate audio chunks and pass them to the playback queue
+        for audio_chunk in voice.synthesize(text, syn_config=syn_config):
+            audio_queue.put(audio_chunk.audio_int16_array)
+        
+        text_queue.task_done()
+
+threading.Thread(target=synthesis_worker, daemon=True).start()
+threading.Thread(target=playback_worker, daemon=True).start()
 
 # Wake word setup
 oww_model = Model(inference_framework="onnx", wakeword_models=["OpenWakeword-Modelfiles/jarvis-v2.onnx"])
@@ -127,11 +154,11 @@ while True:
         stt_audio_data.append(chunk)
         monitor_silence(chunk, vad_state)
     
-    # Write stream to wav
-    wav.write("input.wav", 16000, np.concatenate(stt_audio_data, axis=0))
+    # Convert stream so whisper can read it
+    audio_float32 = np.concatenate(stt_audio_data, axis=0).astype(np.float32) / 32768.0
     
     # Transcribe with fasterwhisper
-    segments, _ = whisper_model.transcribe("input.wav")
+    segments, _ = whisper_model.transcribe(audio_float32)
     transcription = " ".join([seg.text for seg in segments])
 
     print("User: " + transcription)
@@ -152,32 +179,30 @@ while True:
     # Print the person indicator with end="" so Python doesnt start a new block on each chunk and flush=True so the terminal shows text immediately without Python buffering
     print("Jarvis: ", end="", flush=True)
     full_response = ""
+    sentence_buffer = ""
 
     # Print the chunks one by one
     for chunk in stream:
         content = chunk['message']['content']
         print(content, end='', flush=True)
-        # Quietly build the full response for appending to context
-        full_response += content
     
-    # Append the response to the context
+        full_response += content
+        sentence_buffer += content
+
+        if any(punct in content for punct in {'.', '!', '?', '\n'}):
+            sentence = sentence_buffer.strip()
+            if len(sentence) > 1:
+                text_queue.put(sentence)
+            sentence_buffer = ""
+
+    # Catch any remaining text
+    if sentence_buffer.strip():
+        speech_queue.put(sentence_buffer.strip())
+    
     message_context.append({'role': 'assistant', 'content': full_response})
     print()
-
-    # -- Text to speech
-
-    tts_audio_data.clear()
-    
-    for chunk_data in voice.synthesize(full_response, syn_config=syn_config):
-        # Convert raw bytes to 16-bit integers (PCM)
-        tts_audio_data.append(chunk_data.audio_int16_array)
-    
-    # Combine all chunks inside of one array
-    full_tts_audio = np.concatenate(tts_audio_data)
-
-    # Play audio and wait until finished before clearing the trigger, resuming the wait for the wake word detector
-    sd.play(full_tts_audio, samplerate=voice.config.sample_rate)
-    sd.wait()
+    text_queue.join()
+    audio_queue.join()
 
     triggered = False
     print("resuming runner")
