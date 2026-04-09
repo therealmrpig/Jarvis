@@ -86,9 +86,10 @@ def playback_worker():
 
 def synthesis_worker():
     while True:
-        text = text_queue.get().replace("*", "")
+        text = text_queue.get()
         if text is None: break
-        
+        text = text.replace("*", "")
+
         # Generate audio chunks and pass them to the playback queue
         for audio_chunk in voice.synthesize(text, syn_config=syn_config):
             audio_queue.put(audio_chunk.audio_int16_array)
@@ -116,7 +117,7 @@ def monitor_silence(chunk, state):
     elif state['is_speaking']:
         state['silence_count'] += 1
 
-    if state['is_speaking'] and state['silence_count'] > 25:
+    if state['is_speaking'] and state['silence_count'] > 15:
         speech_done.set()
 
 while True:
@@ -170,10 +171,11 @@ while True:
 
     # Start the model with streaming mode turned on, preventing ollama from waiting and delivering everything at once, and instead printing small chunks one by one
     stream = chat(
-        model="jarvis-gemma-v1",
+        model="jarvis-gemma-v3",
         messages=message_context,
         stream=True,
-        keep_alive=-1
+        keep_alive=-1,
+        think=False
     )
 
     # Print the person indicator with end="" so Python doesnt start a new block on each chunk and flush=True so the terminal shows text immediately without Python buffering
