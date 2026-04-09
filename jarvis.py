@@ -159,7 +159,7 @@ while True:
     audio_float32 = np.concatenate(stt_audio_data, axis=0).astype(np.float32) / 32768.0
     
     # Transcribe with fasterwhisper
-    segments, _ = whisper_model.transcribe(audio_float32)
+    segments, _ = whisper_model.transcribe(audio_float32, language="en")
     transcription = " ".join([seg.text for seg in segments])
 
     print("User: " + transcription)
