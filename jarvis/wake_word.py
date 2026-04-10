@@ -10,9 +10,9 @@ class WakeWordDetector:
         return self.model.predict(audio_frame)
 
     def clear_buffer(self):
-        # Feed 3 chunks (~240ms) of silence to slightly push out Jarvis's echo
+        # Feed 5 chunks (~400ms) of silence to slightly push out Jarvis's echo
         # without introducing too much latency for the next user input.
-        for _ in range(3):
+        for _ in range(5):
             self.model.predict(np.zeros(CHUNK, dtype=np.int16))
 
     def is_triggered(self, predictions):
