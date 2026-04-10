@@ -12,6 +12,8 @@ STT_MODEL = "tiny"
 STT_DEVICE = "cpu"
 STT_COMPUTE_TYPE = "int8"
 STT_LANGUAGE = "en"
+STT_BEAM_SIZE = 5
+STT_VAD_FILTER = True
 
 # TTS (Text-to-Speech) settings
 TTS_VOICE_MODEL = "Piper-Modelfiles/jarvis-high.onnx"
