@@ -1,4 +1,4 @@
-# Jarvis: Your Local AI Sentinel
+# Jarvis: The Local Ai Assistant Project
 
 Jarvis is a high-performance, private, and local-first AI assistant. Built for the privacy-conscious enthusiast, Jarvis handles every stage of the intelligence pipeline—from wake-word detection to speech synthesis—entirely on your own hardware. No cloud, no telemetry, no compromises.
 
@@ -14,7 +14,7 @@ Jarvis leverages a modular architecture of best-in-class local tools:
 
 - **Wake Word Detection:** [OpenWakeWord](https://github.com/dscripka/openWakeWord) for efficient, low-latency trigger word monitoring.
 - **Speech-to-Text (STT):** [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper) for near real-time, high-accuracy transcriptions.
-- **Language Model (LLM):** [Ollama](https://ollama.com/) running **Gemma 2** for sophisticated reasoning and technical assistance.
+- **Language Model (LLM):** [Ollama](https://ollama.com/) running **Gemma 4** for sophisticated reasoning and technical assistance.
 - **Text-to-Speech (TTS):** [Piper](https://github.com/rhasspy/piper) for natural-sounding, low-latency speech synthesis.
 
 ## 🚀 Quick Start
