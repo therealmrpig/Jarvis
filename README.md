@@ -1,78 +1,65 @@
-# Jarvis: Local AI Assistant
+# Jarvis: Your Local AI Sentinel
 
-Jarvis is a high-performance, local-first intelligent assistant. Built with privacy and efficiency as core principles, it handles Speech-to-Text (STT), Language Modeling (LLM), and Text-to-Speech (TTS) entirely on your local machine.
+Jarvis is a high-performance, private, and local-first AI assistant. Built for the privacy-conscious enthusiast, Jarvis handles every stage of the intelligence pipeline—from wake-word detection to speech synthesis—entirely on your own hardware. No cloud, no telemetry, no compromises.
 
----
+## 🛡️ Core Mandates
 
-## 🛠️ Philosophy
+- **Local-First:** All processing (STT, TTS, LLM, Wake Word) is executed on the local machine.
+- **Privacy by Design:** Your data and audio never leave your local network.
+- **Intelligence over Politeness:** Designed to be direct, efficient, and technically precise.
 
-- **Local-First:** All processing happens on your hardware. No data ever leaves your network.
-- **Intelligence over Politeness:** Designed for direct, efficient communication and deep technical assistance.
-- **Modularity:** Each component (Audio, STT, LLM, TTS, Wake Word) is isolated for easy swapping and upgrades.
-- **Persistent Memory:** Implements the MemPalace hierarchical memory architecture with AAAK shorthand for long-term context retention.
+## 🛠️ The Stack
 
----
+Jarvis leverages a modular architecture of best-in-class local tools:
 
-## 🚀 How to Use
+- **Wake Word Detection:** [OpenWakeWord](https://github.com/dscripka/openWakeWord) for efficient, low-latency trigger word monitoring.
+- **Speech-to-Text (STT):** [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper) for near real-time, high-accuracy transcriptions.
+- **Language Model (LLM):** [Ollama](https://ollama.com/) running **Gemma 2** for sophisticated reasoning and technical assistance.
+- **Text-to-Speech (TTS):** [Piper](https://github.com/rhasspy/piper) for natural-sounding, low-latency speech synthesis.
 
-### 1. Prerequisites
+## 🚀 Quick Start
+
+### Prerequisites
 - **Python 3.10+**
-- **Ollama** installed and running (for the LLM).
-- **FFmpeg** (required by `faster_whisper`).
-- A microphone and speakers for audio interaction.
+- **Ollama** installed and running.
+- **FFmpeg** (for audio processing).
 
-### 2. Setup
-1.  **Clone the repository:**
-    ```bash
-    git clone [repo-url]
-    cd Jarvis
-    ```
-2.  **Create and activate a virtual environment:**
-    ```bash
-    python -m venv jarvisenv
-    source jarvisenv/bin/activate  # On Windows: jarvisenv\Scripts\activate
-    ```
-3.  **Install dependencies:**
-    *(Note: Ensure all required libraries like `numpy`, `faster_whisper`, `openwakeword`, `pyaudio`, and `ollama` are installed in your environment.)*
+### Setup
+1. **Clone & Enter:**
+   ```bash
+   git clone [repo-url]
+   cd Jarvis
+   ```
+2. **Environment:**
+   Jarvis uses a virtual environment located in `jarvisenv/`.
+   ```bash
+   source jarvisenv/bin/activate
+   pip install -r requirements.txt
+   ```
+3. **Models:**
+   Ensure your model files are placed in the appropriate directories as specified in `jarvis/config.py`:
+   - `Ollama-Modelfiles/` (e.g., `jarvis-gemma-v3`)
+   - `OpenWakeword-Modelfiles/` (e.g., `jarvis-v2.onnx`)
+   - `Piper-Modelfiles/` (e.g., `jarvis-high.onnx`)
 
-### 3. Execution
-Start the assistant by running the main entry point:
+### Execution
+Launch the Jarvis core from the project root:
 ```bash
-python -m jarvis.main
+python -m jarvis
 ```
-Wait for the **"Jarvis ready!"** message, then say the wake word (default: "Jarvis") followed by your request.
+Wait for the **"Jarvis ready!"** message, then speak the wake word followed by your command.
 
----
+## 🗺️ Roadmap
 
-## 🧠 How It Works
+We are constantly refining Jarvis to be the ultimate local assistant. Our current focus includes:
 
-### 🎙️ Wake Word Detection
-- **Technology:** [OpenWakeWord](https://github.com/dscripka/openWakeWord)
-- **Model:** Pre-trained `.onnx` models (e.g., `jarvis-v2.onnx`).
-- **Function:** Efficiently listens for the trigger word with minimal CPU usage.
-
-### 👂 Speech-to-Text (STT)
-- **Technology:** [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper)
-- **Model:** `tiny.en` (configurable in `config.py`).
-- **Function:** Converts your spoken audio into text transcription in near real-time.
-
-### 🤖 Language Model (LLM)
-- **Technology:** [Ollama](https://ollama.com/)
-- **Model:** Custom `jarvis-gemma-v3` (modified Google Gemma 3).
-- **Function:** Processes the transcription, reasons through the request, and generates a response. Supports context streaming for low-latency feedback.
-
-### 🏠 Memory (MemPalace)
-- **Architecture:** Hierarchical storage using **Wings**, **Rooms**, and **Halls**.
-- **Compression:** Uses **AAAK shorthand** (Assertion, Assumption, Action, Knowledge) to compress months of history into a few hundred tokens.
-- **Persistence:** Combines AAAK summaries (Closets) for speed and verbatim transcripts (Drawers) for accuracy.
-
-### 🔊 Text-to-Speech (TTS)
-- **Technology:** [Piper](https://github.com/rhasspy/piper)
-- **Voice:** High-quality `jarvis-high.onnx` voice model.
-- **Function:** Streams the LLM's response back to you as clear, natural-sounding audio.
-
----
+- [ ] **FunctionGemma Integration:** Implementing a lightweight routing model (FunctionGemma 270M) for optimized intent handling.
+- [ ] **MemPalace Implementation:** Building the long-term hierarchical memory system with AAAK shorthand for superior context compression.
+- [ ] **RAG Capabilities:** Adding Retrieval-Augmented Generation for local file context.
+- [ ] **DevOps Pipeline:** GitHub Actions for automated linting and unit testing.
 
 ## ⚙️ Configuration
-All hardware-specific settings, model paths, and thresholds can be tuned in:
-`jarvis/config.py`
+All hardware-specific settings, model paths, and sensitivity thresholds are managed in `jarvis/config.py`.
+
+---
+*Built for privacy. Powered by your hardware.*

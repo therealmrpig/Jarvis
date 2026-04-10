@@ -1,0 +1,8 @@
+faster_whisper==1.1.1
+numpy==2.4.4
+ollama==0.6.1
+openwakeword==0.6.0
+piper_tts==1.3.0
+pyaudio==0.2.14
+silero_vad_lite==0.2.1
+sounddevice==0.5.1
