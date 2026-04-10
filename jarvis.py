@@ -6,7 +6,6 @@ import time
 # STT imports
 import numpy as np
 import sounddevice as sd
-import scipy.io.wavfile as wav
 from faster_whisper import WhisperModel
 
 # LLM imports
