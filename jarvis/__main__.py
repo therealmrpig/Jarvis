@@ -48,7 +48,7 @@ def main():
             audio_frame = np.frombuffer(data, dtype=np.int16)
             is_triggered, model_name, score = wakeword.is_triggered(wakeword.predict(audio_frame))
             if is_triggered:
-                print(f"DETECTED: {model_name}")
+                print(f"DETECTED: {model_name} ACCURACY: {score:.4f}")
                 break
         
         # Record until silence
