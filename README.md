@@ -7,26 +7,42 @@ A privacy-centric, low-latency AI assistant designed for high-performance execut
 - **Privacy by Design:** Zero cloud dependencies. No telemetry. 
 - **Efficiency:** Low-latency execution optimized for legacy hardware.
 
-## Technical Architecture
+## 🛠️ The Stack
 
-### Component Stack
-- **Wake Word Detection:** OpenWakeWord (ONNX-optimized) for low-overhead background monitoring.
-- **Speech-to-Text (STT):** Faster-Whisper (Tiny/Base models) utilizing CTranslate2 for efficient CPU inference.
-- **Inference Engine:** Ollama (Gemma 2 / Llama 3.2) for localized language modeling.
-- **Text-to-Speech (TTS):** Piper (ONNX) for fast, natural-sounding synthesis without GPU requirements.
+Jarvis leverages a modular architecture of best-in-class local tools:
 
-### Current Pipeline
-1. **Listen:** Continuous buffer monitoring for the `jarvis` wake word.
-2. **Capture:** VAD-triggered recording with dynamic silence detection.
-3. **Transcribe:** Local inference via Faster-Whisper.
-4. **Think:** Context-aware response generation via Ollama.
-5. **Synthesize:** Sentence-buffered streaming TTS for perceived zero-latency response.
+- **Wake Word Detection:** [OpenWakeWord](https://github.com/dscripka/openWakeWord) for efficient, low-latency trigger word monitoring.
+- **Speech-to-Text (STT):** [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper) for near real-time, high-accuracy transcriptions.
+- **Language Model (LLM):** [Ollama](https://ollama.com/) running **Gemma 2** for sophisticated reasoning and technical assistance.
+- **Text-to-Speech (TTS):** [Piper](https://github.com/rhasspy/piper) for natural-sounding, low-latency speech synthesis.
 
-## Installation & Deployment
+## 🚀 Quick Start
 
-### Environment Setup
-The system is designed to run in a isolated Python virtual environment.
+### Prerequisites
+- **Python 3.10+**
+- **Ollama** installed and running.
+- **FFmpeg** (for audio processing).
 
+### Setup
+1. **Clone & Enter:**
+   ```bash
+   git clone [repo-url]
+   cd Jarvis
+   ```
+2. **Environment:**
+   Jarvis uses a virtual environment located in `jarvisenv/`.
+   ```bash
+   source jarvisenv/bin/activate
+   pip install -r requirements.txt
+   ```
+3. **Models:**
+   Ensure your model files are placed in the appropriate directories as specified in `jarvis/config.py`:
+   - `Ollama-Modelfiles/` (e.g., `jarvis-gemma-v3`)
+   - `OpenWakeword-Modelfiles/` (e.g., `jarvis-v2.onnx`)
+   - `Piper-Modelfiles/` (e.g., `jarvis-high.onnx`)
+
+### Execution
+Launch the Jarvis core from the project root:
 ```bash
 # Initialize environment
 python3 -m venv jarvisenv
