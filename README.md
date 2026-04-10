@@ -1,65 +1,52 @@
-# Jarvis: Your Local AI Sentinel
+# Jarvis: Local Intelligence System
 
-Jarvis is a high-performance, private, and local-first AI assistant. Built for the privacy-conscious enthusiast, Jarvis handles every stage of the intelligence pipeline—from wake-word detection to speech synthesis—entirely on your own hardware. No cloud, no telemetry, no compromises.
+A privacy-centric, low-latency AI assistant designed for high-performance execution on local hardware. Engineered for a 2015 Mac (Intel CPU), prioritizing efficiency and data sovereignty over conversational filler.
 
-## 🛡️ Core Mandates
+## Core Directives
+- **Local-First:** All processing (STT, LLM, TTS, Wake Word) occurs on-device. No data leaves the local network.
+- **Privacy by Design:** Zero cloud dependencies. No telemetry. 
+- **Efficiency:** Low-latency execution optimized for legacy hardware.
 
-- **Local-First:** All processing (STT, TTS, LLM, Wake Word) is executed on the local machine.
-- **Privacy by Design:** Your data and audio never leave your local network.
-- **Intelligence over Politeness:** Designed to be direct, efficient, and technically precise.
+## Technical Architecture
 
-## 🛠️ The Stack
+### Component Stack
+- **Wake Word Detection:** OpenWakeWord (ONNX-optimized) for low-overhead background monitoring.
+- **Speech-to-Text (STT):** Faster-Whisper (Tiny/Base models) utilizing CTranslate2 for efficient CPU inference.
+- **Inference Engine:** Ollama (Gemma 2 / Llama 3.2) for localized language modeling.
+- **Text-to-Speech (TTS):** Piper (ONNX) for fast, natural-sounding synthesis without GPU requirements.
 
-Jarvis leverages a modular architecture of best-in-class local tools:
+### Current Pipeline
+1. **Listen:** Continuous buffer monitoring for the `jarvis` wake word.
+2. **Capture:** VAD-triggered recording with dynamic silence detection.
+3. **Transcribe:** Local inference via Faster-Whisper.
+4. **Think:** Context-aware response generation via Ollama.
+5. **Synthesize:** Sentence-buffered streaming TTS for perceived zero-latency response.
 
-- **Wake Word Detection:** [OpenWakeWord](https://github.com/dscripka/openWakeWord) for efficient, low-latency trigger word monitoring.
-- **Speech-to-Text (STT):** [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper) for near real-time, high-accuracy transcriptions.
-- **Language Model (LLM):** [Ollama](https://ollama.com/) running **Gemma 2** for sophisticated reasoning and technical assistance.
-- **Text-to-Speech (TTS):** [Piper](https://github.com/rhasspy/piper) for natural-sounding, low-latency speech synthesis.
+## Installation & Deployment
 
-## 🚀 Quick Start
+### Environment Setup
+The system is designed to run in a isolated Python virtual environment.
 
-### Prerequisites
-- **Python 3.10+**
-- **Ollama** installed and running.
-- **FFmpeg** (for audio processing).
-
-### Setup
-1. **Clone & Enter:**
-   ```bash
-   git clone [repo-url]
-   cd Jarvis
-   ```
-2. **Environment:**
-   Jarvis uses a virtual environment located in `jarvisenv/`.
-   ```bash
-   source jarvisenv/bin/activate
-   pip install -r requirements.txt
-   ```
-3. **Models:**
-   Ensure your model files are placed in the appropriate directories as specified in `jarvis/config.py`:
-   - `Ollama-Modelfiles/` (e.g., `jarvis-gemma-v3`)
-   - `OpenWakeword-Modelfiles/` (e.g., `jarvis-v2.onnx`)
-   - `Piper-Modelfiles/` (e.g., `jarvis-high.onnx`)
-
-### Execution
-Launch the Jarvis core from the project root:
 ```bash
-python -m jarvis
+# Initialize environment
+python3 -m venv jarvisenv
+source jarvisenv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
 ```
-Wait for the **"Jarvis ready!"** message, then speak the wake word followed by your command.
 
-## 🗺️ Roadmap
+### Model Assets
+Ensure models are placed in the designated directories:
+- `OpenWakeword-Modelfiles/`: `.onnx` models.
+- `Piper-Modelfiles/`: `.onnx` and `.json` voice configurations.
+- `Ollama`: Ensure the Ollama daemon is running with `jarvis-gemma-v3` or equivalent.
 
-We are constantly refining Jarvis to be the ultimate local assistant. Our current focus includes:
-
-- [ ] **FunctionGemma Integration:** Implementing a lightweight routing model (FunctionGemma 270M) for optimized intent handling.
-- [ ] **MemPalace Implementation:** Building the long-term hierarchical memory system with AAAK shorthand for superior context compression.
-- [ ] **RAG Capabilities:** Adding Retrieval-Augmented Generation for local file context.
-- [ ] **DevOps Pipeline:** GitHub Actions for automated linting and unit testing.
-
-## ⚙️ Configuration
-All hardware-specific settings, model paths, and sensitivity thresholds are managed in `jarvis/config.py`.
+## Roadmap: Engineering Goals
+- **Asynchronous Core:** Transition from serial execution to a non-blocking `asyncio` TaskGroup architecture.
+- **MemPalace:** Implementation of a SQLite-based vector store for long-term hierarchical memory.
+- **Functional Routing:** Intent classification using lightweight models to bypass the main LLM for system-level tasks.
+- **Computer Control:** Tool-calling capabilities for direct filesystem and application interaction.
 
 ---
-*Built for privacy. Powered by your hardware.*
+*Status: Active Development. Optimized for Intel CPU architectures.*
