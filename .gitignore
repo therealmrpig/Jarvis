@@ -9,3 +9,4 @@ Piper-Modelfiles/en_GB-northern_english-male-medium.onnx
 Piper-Modelfiles/en_GB-northern_english-male-medium.onnx.json
 Piper-Modelfiles/jarvis-medium.onnx
 Piper-Modelfiles/jarvis-medium.onnx.json
+__pycache__/
