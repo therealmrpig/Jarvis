@@ -10,3 +10,9 @@ Piper-Modelfiles/en_GB-northern_english-male-medium.onnx.json
 Piper-Modelfiles/jarvis-medium.onnx
 Piper-Modelfiles/jarvis-medium.onnx.json
 __pycache__/
+GEMINI.md
+jarvisenv/
+*.wav
+*.json
+*.code-workspace
+Reports/

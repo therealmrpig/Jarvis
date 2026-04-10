@@ -95,6 +95,8 @@ class TextToSpeech:
 
     def shutdown(self):
         # Called when exiting (Ctrl+C or end of program)
+        # Immediately stop any ongoing playback
+        sd.stop()
         # Put None into both queues to signal workers to stop
         # This makes the while loops in both workers exit
         self.text_queue.put(None)

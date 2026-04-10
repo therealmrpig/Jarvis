@@ -19,8 +19,14 @@ class AudioStream:
         return self.mic_stream.get_read_available()
     
     def flush_buffer(self):
-        while self.get_read_available() > 0:
-            self.read()
+        try:
+            # Only read if the stream is active to avoid hangs
+            if self.mic_stream.is_active():
+                available = self.mic_stream.get_read_available()
+                if available > 0:
+                    self.mic_stream.read(available, exception_on_overflow=False)
+        except Exception:
+            pass
     
     def close(self):
         try:
