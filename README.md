@@ -26,7 +26,7 @@ Jarvis leverages a modular architecture of best-in-class local tools:
 ### Setup
 1. **Clone & Enter:**
    ```bash
-   git clone [repo-url]
+   git clone https://github.com/therealmrpig/Jarvis.git
    cd Jarvis
    ```
 2. **Environment:**
