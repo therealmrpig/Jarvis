@@ -16,3 +16,4 @@ jarvisenv/
 *.json
 *.code-workspace
 Reports/
+plans/
