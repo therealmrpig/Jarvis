@@ -5,7 +5,7 @@ from jarvis.tools import registry
 
 class LanguageModel:
     def __init__(self):
-        # Store conversation history so model remembers previous exchanges
+        # Store conversation history
         self.message_context = []
     
     def add_user_message(self, message):
