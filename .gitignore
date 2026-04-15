@@ -17,4 +17,4 @@ jarvisenv/
 *.code-workspace
 Reports/
 plans/
-jarvis/config.py
+config.py
