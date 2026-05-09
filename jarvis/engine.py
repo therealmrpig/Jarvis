@@ -1,4 +1,5 @@
 import numpy as np
+import asyncio
 
 from jarvis.audio_stream import AudioStream
 from jarvis.wake_word import WakeWordDetector
@@ -20,7 +21,7 @@ class Engine:
 
         self.running = False
     
-    def startup(self):
+    async def startup(self):
         self.running = True
         print("Jarvis ready!")
         
@@ -76,7 +77,7 @@ class Engine:
             print()
             self.tts.wait_completion()
 
-    def shutdown(self):
+    async def shutdown(self):
         print("\nShutting down...")
         self.running = False
         if self.tts:
