@@ -38,5 +38,5 @@ LLM_THINK = False
 
 # Text processing settings
 ASTERISK_CHAR = "*"
-SENTENCE_TERMINATORS = {'.', '!', '?', '\n'}
+SENTENCE_TERMINATORS = {'. ', '! ', '? ', '\n'}
 MIN_SENTENCE_LENGTH = 1
