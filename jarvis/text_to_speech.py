@@ -101,3 +101,22 @@ class TextToSpeech:
         # This makes the while loops in both workers exit
         self.text_queue.put(None)
         self.audio_queue.put(None)
+
+    def halt(self):
+        # Called when user wants to stop current speech immediately (e.g. new input)
+        # This will stop any ongoing playback and clear the audio queue
+        sd.stop()
+        # Clear the audio queue by putting None and then emptying it
+        while not self.text_queue.empty():
+            try:
+                self.text_queue.get_nowait()
+                self.text_queue.task_done()
+            except queue.Empty:
+                break
+        
+        while not self.audio_queue.empty():
+            try:
+                self.audio_queue.get_nowait()
+                self.audio_queue.task_done()
+            except queue.Empty:
+                break
