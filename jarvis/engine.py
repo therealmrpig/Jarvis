@@ -76,9 +76,10 @@ class Engine:
             print()
             self.tts.wait_completion()
 
-        def shutdown(self):
-            print("\nShutting down...")
-            if self.tts:
-                self.tts.shutdown()
-            if self.audio_stream:
-                self.audio_stream.cleanup()
+    def shutdown(self):
+        print("\nShutting down...")
+        self.running = False
+        if self.tts:
+            self.tts.shutdown()
+        if self.audio_stream:
+            self.audio_stream.cleanup()
