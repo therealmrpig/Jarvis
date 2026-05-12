@@ -32,11 +32,17 @@ class TextToSpeech:
         # - audio_queue: Synthesis worker puts audio chunks here, playback worker takes from here
         self.text_queue = queue.Queue()
         self.audio_queue = queue.Queue()
+        self._stop_event = threading.Event()
 
         # Start two background threads that run forever
         # daemon=True means they stop when main program exits
+        self._is_playing = False
         threading.Thread(target=self._synthesis_worker, daemon=True).start()
         threading.Thread(target=self._playback_worker, daemon=True).start()
+
+    def is_busy(self):
+        # Returns True if there is text to synthesize, audio to play, or playback is active
+        return not self.text_queue.empty() or not self.audio_queue.empty() or self._is_playing
 
     def _synthesis_worker(self):
         # This thread runs in the background and continuously processes text
@@ -48,12 +54,15 @@ class TextToSpeech:
             if text is None:
                 break
 
+            self._stop_event.clear()
             # Remove asterisks from text (markdown formatting like **bold**)
             text = text.replace(ASTERISK_CHAR, "")
 
             # Convert text to audio using the Piper voice model
             # This returns audio chunks, so we loop through each one
             for audio_chunk in self.voice.synthesize(text, syn_config=self.syn_config):
+                if self._stop_event.is_set():
+                    break
                 # Put each audio chunk into the audio queue for playback
                 self.audio_queue.put(audio_chunk.audio_int16_array)
 
@@ -70,10 +79,16 @@ class TextToSpeech:
             if chunk is None:
                 break
 
+            if self._stop_event.is_set():
+                self.audio_queue.task_done()
+                continue
+
+            self._is_playing = True
             # Play the audio chunk using sounddevice at the correct sample rate
             sd.play(chunk, samplerate=self.voice.config.sample_rate)
             # Wait for the audio to finish playing before getting the next chunk
             sd.wait()
+            self._is_playing = False
             
             # Tell the queue we finished processing this audio chunk
             self.audio_queue.task_done()
@@ -104,9 +119,11 @@ class TextToSpeech:
 
     def halt(self):
         # Called when user wants to stop current speech immediately (e.g. new input)
+        # Signal workers to stop current tasks
+        self._stop_event.set()
         # This will stop any ongoing playback and clear the audio queue
         sd.stop()
-        # Clear the audio queue by putting None and then emptying it
+        # Clear the queues
         while not self.text_queue.empty():
             try:
                 self.text_queue.get_nowait()
