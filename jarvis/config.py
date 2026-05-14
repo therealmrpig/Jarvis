@@ -37,6 +37,5 @@ LLM_KEEP_ALIVE = -1
 LLM_THINK = False
 
 # Text processing settings
-ASTERISK_CHAR = "*"
 SENTENCE_TERMINATORS = {'. ', '! ', '? ', '\n'}
 MIN_SENTENCE_LENGTH = 1
