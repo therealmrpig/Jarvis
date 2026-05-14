@@ -1,7 +1,7 @@
 import numpy as np
 import asyncio
 from openwakeword.model import Model
-from jarvis.config import WAKEWORD_MODEL_PATH, WAKEWORD_THRESHOLD
+from jarvis.config import WAKEWORD_MODEL_PATH, WAKEWORD_THRESHOLD, WW_CHUNK
 
 class WakeWordMonitor:
     def __init__(self, queue):
