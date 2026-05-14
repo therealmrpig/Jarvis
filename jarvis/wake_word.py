@@ -27,6 +27,11 @@ class WakeWordMonitor:
     def clear(self):
         self.triggered.clear()
         self._flush()
+        while True:
+            try:
+                self.queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
     
     async def start(self):
         while True:

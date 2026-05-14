@@ -67,21 +67,27 @@ class Engine:
         if not self.wake_word_monitor.triggered.is_set():
             if sentence_buffer.strip():
                 self.tts.synthesize(sentence_buffer.strip())
-            await asyncio.to_thread(self.tts.wait)
+            while self.tts.is_busy():
+                if self.wake_word_monitor.triggered.is_set():
+                    self.tts.halt()
+                    print('\n[Interrupted]')
+                    self.wake_word_monitor.clear() # Clear wake word event for barge-in
+                    return
+                await asyncio.sleep(0.1)
             self.llm.add_assistant_message(full_response)
     
     async def start(self):
         self._running = True
 
         # Initialize audio & wake word monitor
-        self.audio.start()
-        asyncio.create_task(self.wake_word_monitor.run())
+        await self.audio.start()
+        asyncio.create_task(self.wake_word_monitor.start())
 
         while self._running:
 
             # ---- Wake word ----
             self.wake_word_monitor.clear()
-            print('Listening...')
+            print('\nListening...')
 
             await self.wake_word_monitor.triggered.wait()
             if not self._running:
@@ -91,6 +97,12 @@ class Engine:
             # ---- Silence Detection ----
             print('Wake word detected! Recording...')
 
+            while self._running:
+                try:
+                    self.main_q.get_nowait()
+                except asyncio.QueueEmpty:
+                    break
+        
             self.vad.reset()
             chunks = []
 
@@ -122,5 +134,6 @@ class Engine:
     
     async def stop(self):
         self._running = False
+        self.wake_word_monitor.triggered.set()  # unblock engine's wait
         self.ww_q.put_nowait(None) # We put None again to ensure the wake word monitor and main queue exit if it's waiting on the event
         self.main_q.put_nowait(None)
