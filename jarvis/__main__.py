@@ -1,5 +1,4 @@
 import signal
-import sys
 import asyncio
 
 from jarvis.engine import Engine
@@ -9,15 +8,15 @@ async def main():
 
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, lambda: asyncio.create_task(engine.shutdown()))
+        loop.add_signal_handler(sig, lambda: asyncio.create_task(engine.stop()))
 
     try:
-        await engine.startup()
+        await engine.start()
     except Exception as e:
-         print(f"Error during startup: {e}")
+        print(f"Error during startup: {e}")
     finally:
         # Final cleanup attempt
-        await engine.shutdown()
+        await engine.stop()
     
 
     
