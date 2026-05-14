@@ -32,7 +32,7 @@ class TextToSpeech:
         self.text_queue = queue.Queue()
         self.audio_queue = queue.Queue()
         self._stop_event = threading.Event()
-        self._is_playing = threading.Event()
+        self._is_working = threading.Event()
 
         # Start two background threads that run forever
         # daemon=True means they stop when main program exits
@@ -41,7 +41,7 @@ class TextToSpeech:
 
     def is_busy(self):
         # Returns True if there is text to synthesize, audio to play, or playback is active
-        return not self.text_queue.empty() or not self.audio_queue.empty() or self._is_playing.is_set()
+        return not self.text_queue.empty() or not self.audio_queue.empty() or self._is_working.is_set()
 
     def wait(self):
         self.text_queue.join()
@@ -76,26 +76,27 @@ class TextToSpeech:
         while True:
             # Get an audio chunk from the queue (blocks if queue is empty)
             chunk = self.audio_queue.get()
-            
+
             # If we get None, it means shutdown was called, so exit this loop
             if chunk is None:
+                self._is_working.clear()
                 break
 
             if self._stop_event.is_set():
                 self.audio_queue.task_done()
+                if self.text_queue.empty() and self.audio_queue.empty():
+                    self._is_working.clear()
                 continue
 
             # Play the audio chunk using sounddevice at the correct sample rate
-            self._is_playing.set()
-            print('[DEBUG] set event')
             sd.play(chunk, samplerate=self.voice.config.sample_rate)
             # Wait for the audio to finish playing before getting the next chunk
             sd.wait()
-            self._is_playing.clear()
-            print('[DEBUG] cleared event')
 
             # Tell the queue we finished processing this audio chunk
             self.audio_queue.task_done()
+            if self.text_queue.empty() and self.audio_queue.empty():
+                self._is_working.clear()
 
     def synthesize(self, text):
         # Called from main loop when a complete sentence is detected
@@ -104,11 +105,12 @@ class TextToSpeech:
         # Only queue sentences that have meaningful length
         if len(text) > MIN_SENTENCE_LENGTH:
             self._stop_event.clear()
+            self._is_working.set()
             self.text_queue.put(text)
 
     def halt(self):
         self._stop_event.set()
-        self._is_playing.clear()
+        self._is_working.clear()
         print('[DEBUG] cleared event')
         sd.stop()
         while not self.text_queue.empty():
