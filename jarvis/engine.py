@@ -8,7 +8,7 @@ from jarvis.speech_to_text import SpeechToText
 from jarvis.language_model import LanguageModel
 from jarvis.text_to_speech import TextToSpeech
 from jarvis.tools import registry
-from jarvis.config import CHUNK, READ_SIZE_FOR_VAD, SENTENCE_TERMINATORS, WAKEWORD_THRESHOLD
+from jarvis.config import CHUNK, SENTENCE_TERMINATORS, WAKEWORD_THRESHOLD
 
 class Engine:
     def __init__(self):
@@ -110,9 +110,7 @@ class Engine:
                 data = await self.main_q.get()
                 chunk = np.frombuffer(data, dtype=np.int16)
                 chunks.append(chunk)
-
-                for i in range(0, len(chunk) - READ_SIZE_FOR_VAD + 1, READ_SIZE_FOR_VAD):
-                    self.vad.process_chunk(chunk[i:i + READ_SIZE_FOR_VAD])
+                self.vad.process_chunk(chunk)
                 
                 if not self._running:
                     break

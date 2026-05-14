@@ -4,8 +4,8 @@ import pyaudio
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 16000
-CHUNK = 1280
-READ_SIZE_FOR_VAD = 512
+WW_CHUNK = 1280
+CHUNK = 512
 
 # STT (Speech-to-Text) settings
 STT_MODEL = "tiny"

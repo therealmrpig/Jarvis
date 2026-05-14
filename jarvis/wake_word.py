@@ -1,7 +1,7 @@
 import numpy as np
 import asyncio
 from openwakeword.model import Model
-from jarvis.config import CHUNK, WAKEWORD_MODEL_PATH, WAKEWORD_THRESHOLD
+from jarvis.config import WAKEWORD_MODEL_PATH, WAKEWORD_THRESHOLD
 
 class WakeWordMonitor:
     def __init__(self, queue):
@@ -16,7 +16,7 @@ class WakeWordMonitor:
         # Feed 5 chunks (~400ms) of silence to slightly push out Jarvis's echo
         # without introducing too much latency for the next user input.
         for _ in range(5):
-            self.model.predict(np.zeros(CHUNK, dtype=np.int16))
+            self.model.predict(np.zeros(WW_CHUNK, dtype=np.int16))
 
     def _is_triggered(self, predictions):
         for mdl, score in predictions.items():

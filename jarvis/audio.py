@@ -1,7 +1,7 @@
 import pyaudio
 import asyncio
 from typing import List, Optional
-from jarvis.config import FORMAT, CHANNELS, RATE, READ_SIZE_FOR_VAD
+from jarvis.config import FORMAT, CHANNELS, RATE, CHUNK
 
 class Audio:
     def __init__(self):
@@ -11,7 +11,7 @@ class Audio:
             channels=CHANNELS, 
             rate=RATE, 
             input=True, 
-            frames_per_buffer=READ_SIZE_FOR_VAD
+            frames_per_buffer=CHUNK
         )
 
         self.queues = []
@@ -37,7 +37,7 @@ class Audio:
     async def _producer(self):
         while self._running:
             try:
-                data = await asyncio.to_thread(self.mic_stream.read, READ_SIZE_FOR_VAD, exception_on_overflow=False)
+                data = await asyncio.to_thread(self.mic_stream.read, CHUNK, exception_on_overflow=False)
                 for q in self.queues:
                     await q.put(data)
             except Exception as e:
