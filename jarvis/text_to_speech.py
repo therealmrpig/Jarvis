@@ -9,8 +9,7 @@ from jarvis.config import (
     TTS_NOISE_SCALE,
     TTS_NOISE_W_SCALE,
     TTS_NORMALIZE_AUDIO,
-    ASTERISK_CHAR,
-    MIN_SENTENCE_LENGTH,
+    MIN_SENTENCE_LENGTH
 )
 
 
@@ -36,13 +35,16 @@ class TextToSpeech:
 
         # Start two background threads that run forever
         # daemon=True means they stop when main program exits
-        self._is_playing = False
         threading.Thread(target=self._synthesis_worker, daemon=True).start()
         threading.Thread(target=self._playback_worker, daemon=True).start()
 
     def is_busy(self):
         # Returns True if there is text to synthesize, audio to play, or playback is active
-        return not self.text_queue.empty() or not self.audio_queue.empty() or self._is_playing
+        return not self.text_queue.empty() or not self.audio_queue.empty()
+
+    def wait(self):
+        self.text_queue.join()
+        self.audio_queue.join()
 
     def _synthesis_worker(self):
         # This thread runs in the background and continuously processes text
@@ -54,9 +56,8 @@ class TextToSpeech:
             if text is None:
                 break
 
-            self._stop_event.clear()
             # Remove asterisks from text (markdown formatting like **bold**)
-            text = text.replace(ASTERISK_CHAR, "")
+            text = text.replace('*', '')
 
             # Convert text to audio using the Piper voice model
             # This returns audio chunks, so we loop through each one
@@ -83,57 +84,34 @@ class TextToSpeech:
                 self.audio_queue.task_done()
                 continue
 
-            self._is_playing = True
             # Play the audio chunk using sounddevice at the correct sample rate
             sd.play(chunk, samplerate=self.voice.config.sample_rate)
             # Wait for the audio to finish playing before getting the next chunk
             sd.wait()
-            self._is_playing = False
             
             # Tell the queue we finished processing this audio chunk
             self.audio_queue.task_done()
 
-    def synthesize_sentence(self, text):
+    def synthesize(self, text):
         # Called from main loop when a complete sentence is detected
         # This puts the sentence into the text queue for the synthesis worker to process
         text = text.strip()
         # Only queue sentences that have meaningful length
         if len(text) > MIN_SENTENCE_LENGTH:
+            self._stop_event.clear()
             self.text_queue.put(text)
 
-    def wait_completion(self):
-        # Block the main loop until all synthesis and playback is finished
-        # text_queue.join() waits for all text to be processed
-        self.text_queue.join()
-        # audio_queue.join() waits for all audio to be played
-        self.audio_queue.join()
-
-    def shutdown(self):
-        # Called when exiting (Ctrl+C or end of program)
-        # Immediately stop any ongoing playback
-        sd.stop()
-        # Put None into both queues to signal workers to stop
-        # This makes the while loops in both workers exit
-        self.text_queue.put(None)
-        self.audio_queue.put(None)
-
     def halt(self):
-        # Called when user wants to stop current speech immediately (e.g. new input)
-        # Signal workers to stop current tasks
         self._stop_event.set()
-        # This will stop any ongoing playback and clear the audio queue
         sd.stop()
-        # Clear the queues
         while not self.text_queue.empty():
             try:
                 self.text_queue.get_nowait()
-                self.text_queue.task_done()
             except queue.Empty:
                 break
         
         while not self.audio_queue.empty():
             try:
                 self.audio_queue.get_nowait()
-                self.audio_queue.task_done()
             except queue.Empty:
                 break
