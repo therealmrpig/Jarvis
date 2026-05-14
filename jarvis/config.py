@@ -4,8 +4,8 @@ import pyaudio
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 16000
-CHUNK = 1280
-READ_SIZE_FOR_VAD = 512
+WW_CHUNK = 1280
+CHUNK = 512
 
 # STT (Speech-to-Text) settings
 STT_MODEL = "tiny"
@@ -37,6 +37,5 @@ LLM_KEEP_ALIVE = -1
 LLM_THINK = False
 
 # Text processing settings
-ASTERISK_CHAR = "*"
-SENTENCE_TERMINATORS = {'. ', '! ', '? ', '\n'}
+SENTENCE_TERMINATORS = {'.', '!', '?', '\n'}
 MIN_SENTENCE_LENGTH = 1

@@ -1,17 +1,14 @@
-import signal
-import sys
-
+import asyncio
 from jarvis.engine import Engine
 
-def main():
+async def main():
     engine = Engine()
-    def signal_handler(sig, frame):
-        engine.shutdown()
-        sys.exit(0)
+    try:
+        await engine.start()
+    except asyncio.CancelledError:
+        pass
+    finally:
+        await engine.stop()
 
-    signal.signal(signal.SIGINT, signal_handler)
-
-    engine.startup()
-    
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

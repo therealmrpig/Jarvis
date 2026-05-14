@@ -1,85 +1,137 @@
 import numpy as np
+import asyncio
 
-from jarvis.audio_stream import AudioStream
-from jarvis.wake_word import WakeWordDetector
+from jarvis.audio import Audio
+from jarvis.wake_word import WakeWordMonitor
 from jarvis.silence_detection import SilenceDetector
 from jarvis.speech_to_text import SpeechToText
 from jarvis.language_model import LanguageModel
 from jarvis.text_to_speech import TextToSpeech
-from jarvis.config import CHUNK, READ_SIZE_FOR_VAD, SENTENCE_TERMINATORS
+from jarvis.tools import registry
+from jarvis.config import CHUNK, SENTENCE_TERMINATORS, WAKEWORD_THRESHOLD
 
 class Engine:
     def __init__(self):
-        # Initialize all components
-        self.audio_stream = AudioStream()
+        self.audio = Audio()
+        self.main_q = self.audio.subscribe()
+        self.ww_q = self.audio.subscribe()
+        self.wake_word_monitor = WakeWordMonitor(self.ww_q)
+
+        self.vad = SilenceDetector()
         self.stt = SpeechToText()
         self.llm = LanguageModel()
-        self.wakeword = WakeWordDetector()
-        self.silence_detector = SilenceDetector()
         self.tts = TextToSpeech()
 
-        self.running = False
+        self._running = False
+
+    async def _respond(self, text):
+        self.llm.add_user_message(text)
+        self.wake_word_monitor.clear() # Clear wake word event for barge-in
+
+        full_response = ''
+        sentence_buffer = ''
+
+        stream = self.llm.stream(tools=registry.get_definitions())
+
+        while self._running:
+            if self.wake_word_monitor.triggered.is_set():
+                self.tts.halt()
+                print('\n[Interrupted]')
+                break
+
+            chunk = await asyncio.to_thread(next, stream, None)
+            if chunk == None:
+                break
+
+            if 'content' in chunk:
+                c = chunk['content']
+                print(c, end='', flush=True)
+                full_response += c
+                sentence_buffer += c
+
+                if any(p in c for p in SENTENCE_TERMINATORS) and sentence_buffer.strip():
+                    self.tts.synthesize(sentence_buffer.strip())
+                    sentence_buffer = ''
+            
+            if 'tool_calls' in chunk:
+                calls = chunk['tool_calls']
+                self.llm.add_assistant_message(full_response, tool_calls=calls)
+                for tc in calls:
+                    print(f'\n[Tool] {tc.function.name}({tc.function.arguments})')
+                    result = registry.execute(tc.function.name, tc.function.arguments)
+                    self.llm.add_tool_message(result)
+                full_response = ''
+                sentence_buffer = ''
+                stream = self.llm.stream(tools=registry.get_definitions())
+
+        if not self.wake_word_monitor.triggered.is_set():
+            if sentence_buffer.strip():
+                self.tts.synthesize(sentence_buffer.strip())
+            while self.tts.is_busy():
+                if self.wake_word_monitor.triggered.is_set():
+                    self.tts.halt()
+                    print('\n[Interrupted]')
+                    self.wake_word_monitor.clear() # Clear wake word event for barge-in
+                    return
+                await asyncio.sleep(0.1)
+            self.llm.add_assistant_message(full_response)
     
-    def startup(self):
-        self.running = True
-        print("Jarvis ready!")
+    async def start(self):
+        self._running = True
+
+        # Initialize audio & wake word monitor
+        await self.audio.start()
+        asyncio.create_task(self.wake_word_monitor.start())
+
+        while self._running:
+
+            # ---- Wake word ----
+            self.wake_word_monitor.clear()
+            print('\nListening...')
+
+            await self.wake_word_monitor.triggered.wait()
+            if not self._running:
+                break
+
+            
+            # ---- Silence Detection ----
+            print('Wake word detected! Recording...')
+
+            while self._running:
+                try:
+                    self.main_q.get_nowait()
+                except asyncio.QueueEmpty:
+                    break
         
-        while self.running:
-            # Listen for wakeword
-            self.audio_stream.flush_buffer()
-            self.wakeword.clear_buffer()
-            print("\nListening for wakeword...")
-            while self.running:
-                data = self.audio_stream.read(CHUNK, exception_on_overflow=False)
-                audio_frame = np.frombuffer(data, dtype=np.int16)
-                is_triggered, model_name, score = self.wakeword.is_triggered(self.wakeword.predict(audio_frame))
-                if is_triggered:
-                    print(f"DETECTED: {model_name} ACCURACY: {score:.4f}")
+            self.vad.reset()
+            chunks = []
+
+            while self._running and not self.vad.is_speech_done():
+                data = await self.main_q.get()
+                chunk = np.frombuffer(data, dtype=np.int16)
+                chunks.append(chunk)
+                self.vad.process_chunk(chunk)
+                
+                if not self._running:
                     break
             
-            # Record until silence
-            self.silence_detector.reset()
-            stt_audio_data = []
-            print("Recording...")
-            while not self.silence_detector.is_speech_done():
-                data = self.audio_stream.read(READ_SIZE_FOR_VAD, exception_on_overflow=False)
-                chunk = np.frombuffer(data, dtype=np.int16)
-                stt_audio_data.append(chunk)
-                self.silence_detector.process_chunk(chunk)
-            
-            # Transcribe
-            audio_float32 = np.concatenate(stt_audio_data, axis=0).astype(np.float32) / 32768.0
-            transcription = self.stt.transcribe(audio_float32)
-            print("User: " + transcription)
+            # ---- Speech to Text ----
 
-            # LLM response with TTS
-            self.llm.add_user_message(transcription)
-            print("Jarvis: ", end="", flush=True)
-            
-            full_response = ""
-            sentence_buffer = ""
-            for chunk in self.llm.chat_stream():
-                print(chunk, end='', flush=True)
-                full_response += chunk
-                sentence_buffer += chunk
-                
-                if any(punct in chunk for punct in SENTENCE_TERMINATORS):
-                    sentence = sentence_buffer.strip()
-                    if len(sentence) > 1:
-                        self.tts.synthesize_sentence(sentence)
-                    sentence_buffer = ""
-            
-            if sentence_buffer.strip():
-                self.tts.synthesize_sentence(sentence_buffer.strip())
-            
-            self.llm.add_assistant_message(full_response)
-            print()
-            self.tts.wait_completion()
+            audio_float32 = np.concatenate(chunks).astype(np.float32) / 32768.0
+            text = await asyncio.to_thread(self.stt.transcribe, audio_float32)
+            print('User:', text)
 
-    def shutdown(self):
-        print("\nShutting down...")
-        self.running = False
-        if self.tts:
-            self.tts.shutdown()
-        if self.audio_stream:
-            self.audio_stream.cleanup()
+            # ---- Language Model & Text to Speech ----
+            await self._respond(text)
+
+            # Loop back to top
+
+        self.ww_q.put_nowait(None) # Stop wake word monitor
+        self.main_q.put_nowait(None) # Stop audio stream
+        self.audio.cleanup()
+    
+    async def stop(self):
+        self._running = False
+        self.wake_word_monitor.triggered.set()  # unblock engine's wait
+        self.ww_q.put_nowait(None) # We put None again to ensure the wake word monitor and main queue exit if it's waiting on the event
+        self.main_q.put_nowait(None)
