@@ -37,5 +37,5 @@ LLM_KEEP_ALIVE = -1
 LLM_THINK = False
 
 # Text processing settings
-SENTENCE_TERMINATORS = {'. ', '! ', '? ', '\n'}
+SENTENCE_TERMINATORS = {'.', '!', '?', '\n'}
 MIN_SENTENCE_LENGTH = 1

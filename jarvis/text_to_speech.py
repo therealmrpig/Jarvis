@@ -32,6 +32,7 @@ class TextToSpeech:
         self.text_queue = queue.Queue()
         self.audio_queue = queue.Queue()
         self._stop_event = threading.Event()
+        self._is_playing = threading.Event()
 
         # Start two background threads that run forever
         # daemon=True means they stop when main program exits
@@ -40,7 +41,7 @@ class TextToSpeech:
 
     def is_busy(self):
         # Returns True if there is text to synthesize, audio to play, or playback is active
-        return not self.text_queue.empty() or not self.audio_queue.empty()
+        return not self.text_queue.empty() or not self.audio_queue.empty() or self._is_playing.is_set()
 
     def wait(self):
         self.text_queue.join()
@@ -85,10 +86,14 @@ class TextToSpeech:
                 continue
 
             # Play the audio chunk using sounddevice at the correct sample rate
+            self._is_playing.set()
+            print('[DEBUG] set event')
             sd.play(chunk, samplerate=self.voice.config.sample_rate)
             # Wait for the audio to finish playing before getting the next chunk
             sd.wait()
-            
+            self._is_playing.clear()
+            print('[DEBUG] cleared event')
+
             # Tell the queue we finished processing this audio chunk
             self.audio_queue.task_done()
 
@@ -103,6 +108,8 @@ class TextToSpeech:
 
     def halt(self):
         self._stop_event.set()
+        self._is_playing.clear()
+        print('[DEBUG] cleared event')
         sd.stop()
         while not self.text_queue.empty():
             try:
