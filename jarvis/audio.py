@@ -1,6 +1,5 @@
 import pyaudio
 import asyncio
-from typing import List, Optional
 from jarvis.config import FORMAT, CHANNELS, RATE, CHUNK
 
 class Audio:

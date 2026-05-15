@@ -36,7 +36,7 @@ class WakeWordMonitor:
     async def start(self):
         while True:
             data = await self.queue.get()
-            if data == None:
+            if data is None:
                 break
             chunk = np.frombuffer(data, dtype=np.int16)
             scores = await asyncio.to_thread(self._predict, chunk)
