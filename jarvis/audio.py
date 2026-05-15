@@ -31,7 +31,10 @@ class Audio:
     async def stop(self):
         self._running = False
         if self.task:
-            await asyncio.wait([self.task], timeout=2)
+            try:
+                await asyncio.wait_for(self.task, timeout=2)
+            except asyncio.TimeoutError:
+                self.task.cancel()
 
     async def _producer(self):
         while self._running:
@@ -42,6 +45,8 @@ class Audio:
             except Exception as e:
                 if self._running:
                     print(f"Audio error: {e}")
+                for q in self.queues:
+                    await q.put(None)
                 break
     
     def cleanup(self):
