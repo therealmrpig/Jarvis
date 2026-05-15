@@ -36,11 +36,16 @@ class ToolRegistry:
             param_type = param.annotation
             json_type = "string"
 
-            if param_type == int: json_type = "integer"
-            elif param_type == float: json_type = "number"
-            elif param_type == bool: json_type = "boolean"
-            elif param_type == list: json_type = "array"
-            elif param_type == dict: json_type = "object"
+            if param_type is int:
+                json_type = "integer"
+            elif param_type is float:
+                json_type = "number"
+            elif param_type is bool:
+                json_type = "boolean"
+            elif param_type is list:
+                json_type = "array"
+            elif param_type is dict:
+                json_type = "object"
 
             parameters["properties"][param_name] = {
                 "type": json_type,

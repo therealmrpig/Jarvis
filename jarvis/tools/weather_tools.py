@@ -1,3 +1,4 @@
+import urllib.parse
 import requests
 from jarvis.tools.registry import registry
 
@@ -5,7 +6,7 @@ def _fetch_weather(city: str = "") -> str:
     # Helper function to fetch minimal 1-line weather string from wttr.in.
     try:
         # If city is blank, wttr.in/ detects via IP
-        url = f"https://wttr.in/{city if city else ''}?format=%C+%t+Rain:+%p"
+        url = f"https://wttr.in/{urllib.parse.quote(city) if city else ''}?format=%C+%t+Rain:+%p"
         response = requests.get(url, timeout=5)
         
         if response.status_code != 200:

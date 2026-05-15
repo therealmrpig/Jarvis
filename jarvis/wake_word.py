@@ -34,11 +34,14 @@ class WakeWordMonitor:
                 break
     
     async def start(self):
-        while True:
-            data = await self.queue.get()
-            if data == None:
-                break
-            chunk = np.frombuffer(data, dtype=np.int16)
-            scores = await asyncio.to_thread(self._predict, chunk)
-            if self._is_triggered(scores)[0]:
-                self.triggered.set()
+        try:
+            while True:
+                data = await self.queue.get()
+                if data is None:
+                    break
+                chunk = np.frombuffer(data, dtype=np.int16)
+                scores = await asyncio.to_thread(self._predict, chunk)
+                if self._is_triggered(scores)[0]:
+                    self.triggered.set()
+        except asyncio.CancelledError:
+            pass

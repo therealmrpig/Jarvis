@@ -8,7 +8,7 @@ from jarvis.speech_to_text import SpeechToText
 from jarvis.language_model import LanguageModel
 from jarvis.text_to_speech import TextToSpeech
 from jarvis.tools import registry
-from jarvis.config import CHUNK, SENTENCE_TERMINATORS, WAKEWORD_THRESHOLD
+from jarvis.config import SENTENCE_TERMINATORS
 
 class Engine:
     def __init__(self):
@@ -40,7 +40,7 @@ class Engine:
                 break
 
             chunk = await asyncio.to_thread(next, stream, None)
-            if chunk == None:
+            if chunk is None:
                 break
 
             if 'content' in chunk:

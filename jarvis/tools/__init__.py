@@ -1,6 +1,6 @@
-from jarvis.tools.registry import registry
-from . import system_tools
-from . import weather_tools
+from jarvis.tools.registry import registry as registry
+from . import system_tools as system_tools
+from . import weather_tools as weather_tools
 
 
 # Each time a new tool file is added (e.g., file_ops.py), 
