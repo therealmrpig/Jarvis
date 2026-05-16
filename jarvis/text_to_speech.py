@@ -72,28 +72,25 @@ class TextToSpeech:
             self.text_queue.task_done()
 
     def _playback_worker(self):
-        # This thread runs in the background and plays audio continuously
+        stream = sd.OutputStream(samplerate=self.voice.config.sample_rate, channels=1, dtype='int16')
+        stream.start()
         while True:
-            # Get an audio chunk from the queue (blocks if queue is empty)
             chunk = self.audio_queue.get()
-
-            # If we get None, it means shutdown was called, so exit this loop
             if chunk is None:
+                stream.close()
                 self._is_working.clear()
                 break
-
             if self._stop_event.is_set():
                 self.audio_queue.task_done()
                 if self.text_queue.empty() and self.audio_queue.empty():
                     self._is_working.clear()
                 continue
-
-            # Play the audio chunk using sounddevice at the correct sample rate
-            sd.play(chunk, samplerate=self.voice.config.sample_rate)
-            # Wait for the audio to finish playing before getting the next chunk
-            sd.wait()
-
-            # Tell the queue we finished processing this audio chunk
+            try:
+                stream.write(chunk)
+            except Exception:
+                stream = sd.OutputStream(samplerate=self.voice.config.sample_rate, channels=1, dtype='int16')
+                stream.start()
+                stream.write(chunk)
             self.audio_queue.task_done()
             if self.text_queue.empty() and self.audio_queue.empty():
                 self._is_working.clear()
