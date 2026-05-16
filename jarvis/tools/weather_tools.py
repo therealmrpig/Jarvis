@@ -18,12 +18,12 @@ def _fetch_weather(city: str = "") -> str:
     except Exception as e:
         return f"Error fetching weather: {str(e)}"
 
-@registry.register(name="get_weather_local", description="Get the current weather for the user's current location (detected automatically via IP). Use this if no specific city is mentioned.")
+@registry.register(name="get_weather_local", description="Get weather for the user's current location (detected via IP). Call this when the user asks about weather but does NOT name a specific city. Do NOT call get_weather_for_city unless a city is explicitly mentioned.")
 def get_weather_local() -> str:
     # Fetches local weather automatically.
     return _fetch_weather("")
 
-@registry.register(name="get_weather_for_city", description="Get the current weather for a specific city. You MUST provide the city name as an argument.")
+@registry.register(name="get_weather_for_city", description="Get weather for a specific named city. Call this ONLY when the user explicitly says a city name. If no city is mentioned, call get_weather_local instead.")
 def get_weather_for_city(city: str) -> str:
     # Fetches weather for a specific city provided by the user.
     return _fetch_weather(city)
