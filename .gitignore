@@ -18,3 +18,4 @@ jarvisenv/
 Reports/
 plans/
 jarvis/config.py
+jarvis/memory.db

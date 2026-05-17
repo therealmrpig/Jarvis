@@ -8,6 +8,7 @@ from jarvis.speech_to_text import SpeechToText
 from jarvis.language_model import LanguageModel
 from jarvis.text_to_speech import TextToSpeech
 from jarvis.tools import registry
+from jarvis.memory import Memory
 from jarvis.config import SENTENCE_TERMINATORS
 
 class Engine:
@@ -21,17 +22,19 @@ class Engine:
         self.stt = SpeechToText()
         self.llm = LanguageModel()
         self.tts = TextToSpeech()
+        self.memory = Memory("jarvis/memory.db")
 
         self._running = False
 
     async def _respond(self, text):
+        context = self.memory.retrieve(text)
         self.llm.add_user_message(text)
-        self.wake_word_monitor.clear() # Clear wake word event for barge-in
+        self.wake_word_monitor.clear()
 
         full_response = ''
         sentence_buffer = ''
 
-        stream = self.llm.stream(tools=registry.get_definitions())
+        stream = self.llm.stream(tools=registry.get_definitions(), context=context)
 
         while self._running:
             if self.wake_word_monitor.triggered.is_set():
@@ -75,6 +78,9 @@ class Engine:
                     return
                 await asyncio.sleep(0.1)
             self.llm.add_assistant_message(full_response)
+            asyncio.create_task(
+                asyncio.to_thread(self.memory.store, text)
+            )
     
     async def start(self):
         self._running = True

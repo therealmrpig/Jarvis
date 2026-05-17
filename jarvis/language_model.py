@@ -1,31 +1,32 @@
 from ollama import chat
-from jarvis.config import LLM_MODEL, LLM_KEEP_ALIVE, LLM_THINK
+from jarvis.config import LLM_MODEL, LLM_KEEP_ALIVE, LLM_THINK, LLM_SYSTEM_PROMPT
 
 
 class LanguageModel:
     def __init__(self):
-        # Store conversation history
-        self._messages = []
-    
+        self._messages = [{'role': 'system', 'content': LLM_SYSTEM_PROMPT}]
+
     def add_user_message(self, message):
-        # Add user's input to conversation history
         self._messages.append({'role': 'user', 'content': message})
 
     def add_assistant_message(self, message, tool_calls=None):
-        # Add assistant's response to conversation history
         msg = {'role': 'assistant', 'content': message}
         if tool_calls:
             msg['tool_calls'] = tool_calls
         self._messages.append(msg)
 
     def add_tool_message(self, content):
-        # Add tool's output to conversation history
         self._messages.append({'role': 'tool', 'content': str(content)})
-    
-    def stream(self, tools=None):
+
+    def stream(self, tools=None, context=None):
+        messages = [self._messages[0]]
+        if context:
+            messages.append({"role": "system", "content": context})
+        messages.extend(self._messages[1:])
+        import json; print(f"\n[DEBUG] LLM messages:\n{json.dumps(messages, indent=2, default=str)}\n")
         chat_stream = chat(
             model=LLM_MODEL,
-            messages=self._messages,
+            messages=messages,
             tools=tools,
             stream=True,
             keep_alive=LLM_KEEP_ALIVE,
@@ -40,7 +41,6 @@ class LanguageModel:
                 out["tool_calls"] = msg["tool_calls"]
             if out:
                 yield out
-    
+
     def clear(self):
-        # Clear all conversation history (if you want to start fresh)
-        self._messages.clear()
+        self._messages = [self._messages[0]]
