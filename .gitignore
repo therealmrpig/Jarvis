@@ -19,3 +19,5 @@ Reports/
 plans/
 jarvis/config.py
 jarvis/memory.db
+jarvis/memory.db-shm
+jarvis/memory.db-wal
